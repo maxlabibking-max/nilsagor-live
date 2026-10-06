@@ -1,11 +1,11 @@
-
-name: Build Nilsagor Live APK
+name: Build Nilsagor Live Android
 
 on:
   workflow_dispatch:
   push:
     branches:
       - main
+      - master
 
 jobs:
   build:
@@ -15,20 +15,33 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup JDK
+      - name: Set up Java 17
         uses: actions/setup-java@v4
         with:
           distribution: temurin
-          java-version: '17'
+          java-version: "17"
 
-      - name: Grant execute permission
-        run: chmod +x gradlew
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
 
-      - name: Build APK
-        run: ./gradlew assembleDebug
+      - name: Install Android SDK
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-35" "build-tools;35.0.0"
 
-      - name: Upload APK
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.11.1"
+
+      - name: Build APK and AAB
+        run: gradle --no-daemon --stacktrace :app:assembleDebug :app:bundleRelease
+
+      - name: Upload APK and AAB
         uses: actions/upload-artifact@v4
         with:
-          name: Nilsagor-Live-APK
-          path: app/build/outputs/apk/debug/*.apk
+          name: Nilsagor-Live-Android-build
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/bundle/release/*.aab
+          if-no-files-found: error
